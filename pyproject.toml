@@ -1,0 +1,81 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "edgetutor-ai"
+version = "0.1.0"
+description = "Offline AI Tutor for NVIDIA Jetson — voice, vision, and chat"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "EdgeTutor Contributors"},
+]
+keywords = ["jetson", "nvidia", "offline-ai", "tutoring", "edge-ai", "education"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Education",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "gradio>=4.0,<5.0",
+    "python-dotenv>=1.0",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "Pillow>=10.0",
+    "numpy>=1.24",
+    "pytesseract>=0.3.10",
+    "llama-cpp-python>=0.2.50",
+    "faster-whisper>=1.0.0",
+    "piper-tts>=1.2.0",
+    "faiss-cpu>=1.7.4",
+    "sentence-transformers>=2.2.0",
+    "pypdf>=3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.3.0",
+    "black>=24.0",
+]
+gpu = [
+    # On Jetson, install llama-cpp-python with CUDA support:
+    # CMAKE_ARGS="-DGGML_CUDA=on" pip install llama-cpp-python
+    # faster-whisper uses CTranslate2 which auto-detects CUDA
+]
+
+[project.urls]
+Homepage = "https://github.com/thatcooperguy/edgetutor-ai"
+Repository = "https://github.com/thatcooperguy/edgetutor-ai"
+Issues = "https://github.com/thatcooperguy/edgetutor-ai/issues"
+
+[tool.setuptools.packages.find]
+include = ["edgetutor*"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.pytest.ini_options]
+testpaths = ["edgetutor/tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
