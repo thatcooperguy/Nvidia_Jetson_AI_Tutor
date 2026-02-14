@@ -2,7 +2,7 @@
 EdgeTutor AI — Gradio Web UI.
 
 Local web interface served on LAN (default localhost:7860).
-Dark theme. Supports: AI Tutor, AI Mentor, camera/voice, settings.
+Dark theme. Supports: AI Tutor (streaming), AI Mentor, camera/voice, settings.
 """
 
 from __future__ import annotations
@@ -75,18 +75,113 @@ def _get_system_info_html() -> str:
         return '<div style="color:#888">System info unavailable.</div>'
 
 
-# ── Chat handler ──────────────────────────────────────────────────────────────
-def _chat_respond(
+def _build_conv_history(history: list | None, limit: int = 10) -> list[dict]:
+    """Extract the last *limit* messages as [{role, content}] dicts."""
+    conv = []
+    for msg in (history or [])[-limit:]:
+        if isinstance(msg, dict):
+            conv.append(
+                {
+                    "role": msg.get("role", "user"),
+                    "content": msg.get("content", ""),
+                }
+            )
+    return conv
+
+
+def _format_errors(errors: list[str]) -> str:
+    """Format orchestrator errors as a small HTML block."""
+    if not errors:
+        return ""
+    lines = "\n".join(f"- {e}" for e in errors)
+    return f"\n\n<small>⚠️ **Warnings:**\n{lines}</small>"
+
+
+# ── Streaming chat handler ───────────────────────────────────────────────────
+def _chat_respond_stream(
     message: str,
     audio: tuple | None = None,
     image: object | None = None,
-    history: list = None,
+    history: list | None = None,
     age_mode: str = "10",
     subject_mode: str = "general",
     parent_mode: bool = False,
     quiz_mode: bool = False,
 ):
-    """Main chat handler for AI Tutor mode."""
+    """Streaming chat handler for AI Tutor mode.
+
+    This is a *generator* — Gradio calls it and yields partial chat
+    histories so the user sees tokens appear in real time.
+    """
+    if history is None:
+        history = []
+
+    if _orchestrator is None:
+        history.append({"role": "assistant", "content": "⚠️ System not initialized."})
+        yield history, history, None, ""
+        return
+
+    from edgetutor.app.orchestrator import TutorRequest
+
+    request = TutorRequest(
+        user_text=message or "",
+        settings_override={
+            "age_mode": age_mode,
+            "subject_mode": subject_mode,
+            "parent_mode": parent_mode,
+            "quiz_mode": quiz_mode,
+        },
+    )
+
+    if audio is not None:
+        try:
+            sr, audio_data = audio
+            request.audio_array = audio_data
+            request.audio_sample_rate = sr
+        except Exception as e:
+            logger.error("Audio processing error: %s", e)
+
+    if image is not None:
+        request.image = image
+
+    conv_history = _build_conv_history(history)
+
+    # ── Add user message to history ──────────────────────────────────
+    display_text = message
+    if not display_text and request.audio_array is not None:
+        display_text = "🎤 [Voice input]"
+    if image is not None:
+        display_text = (display_text or "") + " 📷 [Image attached]"
+    if not display_text:
+        display_text = "..."
+
+    history.append({"role": "user", "content": display_text.strip()})
+
+    # ── Stream tokens from the orchestrator ──────────────────────────
+    accumulated = ""
+    history.append({"role": "assistant", "content": ""})
+
+    for token in _orchestrator.process_stream(request, conversation_history=conv_history):
+        accumulated += token
+        history[-1]["content"] = accumulated
+        yield history, history, None, ""
+
+    # Final yield with complete text (no audio for streaming path)
+    yield history, history, None, ""
+
+
+# ── Non-streaming fallback (used by worksheet scanner, step-by-step) ─────────
+def _chat_respond(
+    message: str,
+    audio: tuple | None = None,
+    image: object | None = None,
+    history: list | None = None,
+    age_mode: str = "10",
+    subject_mode: str = "general",
+    parent_mode: bool = False,
+    quiz_mode: bool = False,
+):
+    """Non-streaming chat handler (used for worksheet scans, etc.)."""
     if history is None:
         history = []
 
@@ -117,16 +212,7 @@ def _chat_respond(
     if image is not None:
         request.image = image
 
-    conv_history = []
-    for msg in (history or [])[-10:]:
-        if isinstance(msg, dict):
-            conv_history.append(
-                {
-                    "role": msg.get("role", "user"),
-                    "content": msg.get("content", ""),
-                }
-            )
-
+    conv_history = _build_conv_history(history)
     response = _orchestrator.process(request, conversation_history=conv_history)
 
     display_text = message
@@ -141,10 +227,15 @@ def _chat_respond(
 
     response_text = response.text
     if response.ocr_text:
-        response_text = f"📝 **Extracted text:**\n> {response.ocr_text[:300]}{'...' if len(response.ocr_text) > 300 else ''}\n\n{response_text}"
+        preview = response.ocr_text[:300]
+        ellipsis = "..." if len(response.ocr_text) > 300 else ""
+        response_text = f"📝 **Extracted text:**\n> {preview}{ellipsis}\n\n{response_text}"
     if response.has_math and response.math_expressions:
         math_preview = "\n".join(f"- `{expr}`" for expr in response.math_expressions[:5])
         response_text = f"🔢 **Math detected:**\n{math_preview}\n\n{response_text}"
+
+    # Surface errors from orchestrator
+    response_text += _format_errors(response.errors)
 
     latency_parts = [f"{k}: {v:.1f}s" for k, v in response.latency.items()]
     if latency_parts:
@@ -158,14 +249,14 @@ def _chat_respond(
 def _mentor_respond(
     message: str,
     mentor_topic: str,
-    history: list = None,
+    history: list | None = None,
     age_mode: str = "10",
 ):
     """Chat handler for AI Mentor mode."""
     if history is None:
         history = []
 
-    if _orchestrator is None or not _orchestrator._llm or not _orchestrator._llm.is_loaded:
+    if _orchestrator is None or not _orchestrator.llm or not _orchestrator.llm.is_loaded:
         history.append({"role": "assistant", "content": "⚠️ LLM not loaded. Check models/ folder."})
         return history, history, ""
 
@@ -178,22 +269,25 @@ def _mentor_respond(
     elif not actual_message.strip():
         actual_message = "Tell me about this Jetson device and how AI works on it!"
 
-    system_prompt = build_mentor_prompt(age=age_mode)
+    # Safety check on mentor input
+    cfg = get_settings()
+    if cfg.safety_enabled:
+        from edgetutor.core.safety import check_input_safety, get_redirect_message
 
-    conv_history = []
-    for msg in (history or [])[-10:]:
-        if isinstance(msg, dict):
-            conv_history.append(
-                {
-                    "role": msg.get("role", "user"),
-                    "content": msg.get("content", ""),
-                }
-            )
+        is_safe, _category = check_input_safety(actual_message)
+        if not is_safe:
+            display_text = message if message.strip() else f"📖 [Topic: {mentor_topic}]"
+            history.append({"role": "user", "content": display_text})
+            history.append({"role": "assistant", "content": get_redirect_message()})
+            return history, history, ""
+
+    system_prompt = build_mentor_prompt(age=age_mode)
+    conv_history = _build_conv_history(history)
 
     display_text = message if message.strip() else f"📖 [Topic: {mentor_topic}]"
     history.append({"role": "user", "content": display_text})
 
-    response_text = _orchestrator._llm.generate(
+    response_text = _orchestrator.llm.generate(
         user_message=actual_message,
         system_prompt=system_prompt,
         conversation_history=conv_history,
@@ -378,7 +472,7 @@ def build_ui() -> gr.Blocks:
                                 value=False,
                             )
 
-                # Tutor event handlers
+                # Tutor event handlers — streaming for text, non-streaming for scans
                 tutor_inputs = [
                     tutor_input,
                     audio_input,
@@ -391,8 +485,16 @@ def build_ui() -> gr.Blocks:
                 ]
                 tutor_outputs = [tutor_chatbot, tutor_state, audio_output, tutor_input]
 
-                tutor_send.click(fn=_chat_respond, inputs=tutor_inputs, outputs=tutor_outputs)
-                tutor_input.submit(fn=_chat_respond, inputs=tutor_inputs, outputs=tutor_outputs)
+                tutor_send.click(
+                    fn=_chat_respond_stream,
+                    inputs=tutor_inputs,
+                    outputs=tutor_outputs,
+                )
+                tutor_input.submit(
+                    fn=_chat_respond_stream,
+                    inputs=tutor_inputs,
+                    outputs=tutor_outputs,
+                )
                 scan_btn.click(
                     fn=_scan_worksheet,
                     inputs=[image_input, tutor_state, age_slider, subject_dropdown, parent_toggle],

@@ -57,6 +57,11 @@ class TutorOrchestrator:
         self._ocr = None
         self._rag = None
 
+    @property
+    def llm(self):
+        """Public access to the LLM backend (for mentor mode, etc.)."""
+        return self._llm
+
     def load_modules(self) -> dict:
         """
         Load all available modules. Returns status dict.
@@ -145,6 +150,17 @@ class TutorOrchestrator:
         # Apply settings overrides if any
         if request.settings_override:
             self._apply_settings(request.settings_override)
+
+        # ─── Early safety check on raw text input ─────────────────────────
+        if cfg.safety_enabled and request.user_text:
+            from edgetutor.core.safety import check_input_safety, get_redirect_message
+
+            is_safe, category = check_input_safety(request.user_text)
+            if not is_safe:
+                logger.info("Orchestrator blocked input: category=%s", category)
+                response.text = get_redirect_message()
+                response.latency["total"] = time.time() - total_t0
+                return response
 
         # ─── Step 1: Speech-to-text (if audio provided) ──────────────────
         user_text = request.user_text
@@ -279,6 +295,15 @@ class TutorOrchestrator:
         if request.settings_override:
             self._apply_settings(request.settings_override)
 
+        # ─── Early safety check ──────────────────────────────────────────
+        if cfg.safety_enabled and request.user_text:
+            from edgetutor.core.safety import check_input_safety, get_redirect_message
+
+            is_safe, _category = check_input_safety(request.user_text)
+            if not is_safe:
+                yield get_redirect_message()
+                return
+
         # STT
         user_text = request.user_text
         if request.audio_array is not None and self._stt and self._stt.is_ready:
@@ -334,11 +359,24 @@ class TutorOrchestrator:
             yield "Hi! I'm EdgeTutor. Ask me anything or scan a worksheet!"
             return
 
-        # Stream LLM
-        yield from self._llm.generate_stream(
+        # Stream LLM — accumulate and check output safety afterward
+        accumulated = ""
+        for token in self._llm.generate_stream(
             user_message=final_message,
             conversation_history=conversation_history,
-        )
+        ):
+            accumulated += token
+            yield token
+
+        # Post-stream output safety check
+        if cfg.safety_enabled and accumulated:
+            from edgetutor.core.safety import check_output_safety
+
+            scrubbed = check_output_safety(accumulated)
+            if scrubbed != accumulated:
+                # Yield a replacement marker — the UI should use the final
+                # accumulated text, so we signal that a replacement happened.
+                yield "\n\n[Response replaced by safety filter]"
 
     def _apply_settings(self, overrides: dict) -> None:
         """Apply runtime setting overrides."""

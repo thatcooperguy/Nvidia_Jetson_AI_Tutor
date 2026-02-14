@@ -39,14 +39,14 @@ class Settings(BaseSettings):
 
     # ── Server ────────────────────────────────────────────────────────────────
     host: str = Field(default="0.0.0.0", alias="EDGETUTOR_HOST")
-    port: int = Field(default=7860, alias="EDGETUTOR_PORT")
+    port: int = Field(default=7860, alias="EDGETUTOR_PORT", ge=1, le=65535)
 
     # ── LLM ───────────────────────────────────────────────────────────────────
     llm_model_path: str = Field(default="models/default.gguf", alias="LLM_MODEL_PATH")
-    llm_n_gpu_layers: int = Field(default=20, alias="LLM_N_GPU_LAYERS")
-    llm_context_size: int = Field(default=2048, alias="LLM_CONTEXT_SIZE")
-    llm_max_tokens: int = Field(default=512, alias="LLM_MAX_TOKENS")
-    llm_temperature: float = Field(default=0.7, alias="LLM_TEMPERATURE")
+    llm_n_gpu_layers: int = Field(default=20, alias="LLM_N_GPU_LAYERS", ge=-1, le=200)
+    llm_context_size: int = Field(default=2048, alias="LLM_CONTEXT_SIZE", ge=128, le=131072)
+    llm_max_tokens: int = Field(default=512, alias="LLM_MAX_TOKENS", ge=1, le=32768)
+    llm_temperature: float = Field(default=0.7, alias="LLM_TEMPERATURE", ge=0.0, le=2.0)
 
     # ── STT ───────────────────────────────────────────────────────────────────
     stt_model_size: str = Field(default="small", alias="STT_MODEL_SIZE")
@@ -58,7 +58,7 @@ class Settings(BaseSettings):
     # ── TTS ───────────────────────────────────────────────────────────────────
     tts_voice_model: str = Field(default="voices/en_US-lessac-medium.onnx", alias="TTS_VOICE_MODEL")
     tts_enabled: bool = Field(default=True, alias="TTS_ENABLED")
-    tts_rate: float = Field(default=1.0, alias="TTS_RATE")
+    tts_rate: float = Field(default=1.0, alias="TTS_RATE", ge=0.1, le=5.0)
 
     # ── Vision / OCR ──────────────────────────────────────────────────────────
     ocr_engine: str = Field(default="tesseract", alias="OCR_ENGINE")
@@ -71,8 +71,8 @@ class Settings(BaseSettings):
     rag_embedding_model: str = Field(
         default="sentence-transformers/all-MiniLM-L6-v2", alias="RAG_EMBEDDING_MODEL"
     )
-    rag_top_k: int = Field(default=3, alias="RAG_TOP_K")
-    rag_chunk_size: int = Field(default=500, alias="RAG_CHUNK_SIZE")
+    rag_top_k: int = Field(default=3, alias="RAG_TOP_K", ge=1, le=100)
+    rag_chunk_size: int = Field(default=500, alias="RAG_CHUNK_SIZE", ge=50, le=10000)
 
     # ── Safety ────────────────────────────────────────────────────────────────
     safety_enabled: bool = Field(default=True, alias="SAFETY_ENABLED")
