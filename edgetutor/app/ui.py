@@ -44,6 +44,7 @@ def _get_system_info_html() -> str:
     """Generate system info panel HTML for AI Mentor mode."""
     try:
         from edgetutor.core.jetson import get_full_system_info
+
         info = get_full_system_info()
         return f"""
         <div style="font-family:monospace;font-size:0.85em;line-height:1.6;
@@ -52,20 +53,20 @@ def _get_system_info_html() -> str:
                 🖥️ YOUR AI LAB — System Stats
             </div>
             <table style="width:100%;color:#ccc">
-                <tr><td style="color:#888">Board</td><td><strong>{info['board_name']}</strong></td></tr>
-                <tr><td style="color:#888">GPU</td><td>{info['gpu_name']}</td></tr>
-                <tr><td style="color:#888">CUDA Cores</td><td>{info['cuda_cores']}</td></tr>
-                <tr><td style="color:#888">CPU Cores</td><td>{info['cpu_cores']}</td></tr>
-                <tr><td style="color:#888">RAM</td><td>{info['ram_total_gb']:.1f} GB total / {info['ram_available_gb']:.1f} GB free</td></tr>
-                <tr><td style="color:#888">GPU Memory</td><td>{info['gpu_mem_total_gb']:.1f} GB (shared)</td></tr>
-                <tr><td style="color:#888">Power Mode</td><td>{info['power_mode']}</td></tr>
-                <tr><td style="color:#888">Tegra</td><td>{'Yes ✓' if info['is_tegra'] else 'No'}</td></tr>
+                <tr><td style="color:#888">Board</td><td><strong>{info["board_name"]}</strong></td></tr>
+                <tr><td style="color:#888">GPU</td><td>{info["gpu_name"]}</td></tr>
+                <tr><td style="color:#888">CUDA Cores</td><td>{info["cuda_cores"]}</td></tr>
+                <tr><td style="color:#888">CPU Cores</td><td>{info["cpu_cores"]}</td></tr>
+                <tr><td style="color:#888">RAM</td><td>{info["ram_total_gb"]:.1f} GB total / {info["ram_available_gb"]:.1f} GB free</td></tr>
+                <tr><td style="color:#888">GPU Memory</td><td>{info["gpu_mem_total_gb"]:.1f} GB (shared)</td></tr>
+                <tr><td style="color:#888">Power Mode</td><td>{info["power_mode"]}</td></tr>
+                <tr><td style="color:#888">Tegra</td><td>{"Yes ✓" if info["is_tegra"] else "No"}</td></tr>
                 <tr><td colspan="2" style="border-top:1px solid #333;padding-top:6px"></td></tr>
-                <tr><td style="color:#888">Active LLM</td><td style="color:#76ff03">{info['recommended_model']}</td></tr>
-                <tr><td style="color:#888">GPU Layers</td><td>{info['recommended_gpu_layers']}</td></tr>
-                <tr><td style="color:#888">Context</td><td>{info['recommended_context']} tokens</td></tr>
-                <tr><td style="color:#888">STT Model</td><td>Whisper {info['recommended_stt']}</td></tr>
-                <tr><td style="color:#888">Scaling</td><td style="color:#ffc107;font-size:0.85em">{info['scaling_reason']}</td></tr>
+                <tr><td style="color:#888">Active LLM</td><td style="color:#76ff03">{info["recommended_model"]}</td></tr>
+                <tr><td style="color:#888">GPU Layers</td><td>{info["recommended_gpu_layers"]}</td></tr>
+                <tr><td style="color:#888">Context</td><td>{info["recommended_context"]} tokens</td></tr>
+                <tr><td style="color:#888">STT Model</td><td>Whisper {info["recommended_stt"]}</td></tr>
+                <tr><td style="color:#888">Scaling</td><td style="color:#ffc107;font-size:0.85em">{info["scaling_reason"]}</td></tr>
             </table>
         </div>
         """
@@ -119,10 +120,12 @@ def _chat_respond(
     conv_history = []
     for msg in (history or [])[-10:]:
         if isinstance(msg, dict):
-            conv_history.append({
-                "role": msg.get("role", "user"),
-                "content": msg.get("content", ""),
-            })
+            conv_history.append(
+                {
+                    "role": msg.get("role", "user"),
+                    "content": msg.get("content", ""),
+                }
+            )
 
     response = _orchestrator.process(request, conversation_history=conv_history)
 
@@ -180,10 +183,12 @@ def _mentor_respond(
     conv_history = []
     for msg in (history or [])[-10:]:
         if isinstance(msg, dict):
-            conv_history.append({
-                "role": msg.get("role", "user"),
-                "content": msg.get("content", ""),
-            })
+            conv_history.append(
+                {
+                    "role": msg.get("role", "user"),
+                    "content": msg.get("content", ""),
+                }
+            )
 
     display_text = message if message.strip() else f"📖 [Topic: {mentor_topic}]"
     history.append({"role": "user", "content": display_text})
@@ -207,8 +212,11 @@ def _scan_worksheet(image, history, age_mode, subject_mode, parent_mode):
 
     return _chat_respond(
         message="Please explain this worksheet step by step.",
-        image=image, history=history, age_mode=age_mode,
-        subject_mode=subject_mode, parent_mode=parent_mode,
+        image=image,
+        history=history,
+        age_mode=age_mode,
+        subject_mode=subject_mode,
+        parent_mode=parent_mode,
     )[:3]
 
 
@@ -229,8 +237,10 @@ def _explain_step_by_step(history, age_mode, subject_mode, parent_mode):
 
     result = _chat_respond(
         message=f"Please explain this step by step in detail: {last_user}",
-        history=history, age_mode=age_mode,
-        subject_mode=subject_mode, parent_mode=parent_mode,
+        history=history,
+        age_mode=age_mode,
+        subject_mode=subject_mode,
+        parent_mode=parent_mode,
     )
     return result[0], result[1]
 
@@ -241,6 +251,7 @@ def build_ui() -> gr.Blocks:
     global _orchestrator, _module_status
 
     from edgetutor.app.orchestrator import get_orchestrator
+
     _orchestrator = get_orchestrator()
     _module_status = _orchestrator.load_modules()
 
@@ -315,18 +326,23 @@ def build_ui() -> gr.Blocks:
                             tutor_input = gr.Textbox(
                                 label="Ask EdgeTutor",
                                 placeholder="Type your question here...",
-                                scale=4, lines=1,
+                                scale=4,
+                                lines=1,
                             )
                             tutor_send = gr.Button("Send 📤", variant="primary", scale=1)
 
                         with gr.Row():
                             audio_input = gr.Audio(
                                 label="🎤 Push-to-Talk",
-                                sources=["microphone"], type="numpy", scale=2,
+                                sources=["microphone"],
+                                type="numpy",
+                                scale=2,
                             )
                             audio_output = gr.Audio(
                                 label="🔊 Response",
-                                type="numpy", autoplay=True, scale=2,
+                                type="numpy",
+                                autoplay=True,
+                                scale=2,
                             )
 
                     with gr.Column(scale=2):
@@ -334,7 +350,8 @@ def build_ui() -> gr.Blocks:
                             image_input = gr.Image(
                                 label="Capture or upload worksheet",
                                 sources=["webcam", "upload"],
-                                type="pil", height=220,
+                                type="pil",
+                                height=220,
                             )
                             with gr.Row():
                                 scan_btn = gr.Button("📄 Scan Worksheet", variant="secondary")
@@ -342,25 +359,35 @@ def build_ui() -> gr.Blocks:
 
                         with gr.Accordion("⚙️ Settings", open=False):
                             age_slider = gr.Radio(
-                                choices=["7", "10", "16"], value="10",
+                                choices=["7", "10", "16"],
+                                value="10",
                                 label="Age Mode",
                                 info="Adjusts tone and depth",
                             )
                             subject_dropdown = gr.Dropdown(
                                 choices=["math", "reading", "science", "general"],
-                                value="general", label="Subject",
+                                value="general",
+                                label="Subject",
                             )
                             parent_toggle = gr.Checkbox(
-                                label="🔓 Parent Mode (direct answers)", value=False,
+                                label="🔓 Parent Mode (direct answers)",
+                                value=False,
                             )
                             quiz_toggle = gr.Checkbox(
-                                label="📝 Quiz Mode", value=False,
+                                label="📝 Quiz Mode",
+                                value=False,
                             )
 
                 # Tutor event handlers
                 tutor_inputs = [
-                    tutor_input, audio_input, image_input, tutor_state,
-                    age_slider, subject_dropdown, parent_toggle, quiz_toggle,
+                    tutor_input,
+                    audio_input,
+                    image_input,
+                    tutor_state,
+                    age_slider,
+                    subject_dropdown,
+                    parent_toggle,
+                    quiz_toggle,
                 ]
                 tutor_outputs = [tutor_chatbot, tutor_state, audio_output, tutor_input]
 
@@ -398,7 +425,8 @@ def build_ui() -> gr.Blocks:
                             mentor_input = gr.Textbox(
                                 label="Ask the AI Mentor",
                                 placeholder="How do GPUs help with AI?",
-                                scale=4, lines=1,
+                                scale=4,
+                                lines=1,
                             )
                             mentor_send = gr.Button("Ask 🧠", variant="primary", scale=1)
 
@@ -420,12 +448,15 @@ def build_ui() -> gr.Blocks:
                         }
 
                         for key, label in topic_labels.items():
-                            btn = gr.Button(label, variant="secondary", elem_classes=["mentor-topic-btn"])
+                            btn = gr.Button(
+                                label, variant="secondary", elem_classes=["mentor-topic-btn"]
+                            )
                             topic_buttons[key] = btn
 
                         # Age selector for mentor
                         mentor_age = gr.Radio(
-                            choices=["7", "10", "16"], value="10",
+                            choices=["7", "10", "16"],
+                            value="10",
                             label="Explanation Level",
                         )
 

@@ -61,7 +61,9 @@ class LLMBackend:
             )
             return True
         except ImportError:
-            logger.error("llama-cpp-python not installed. Install with: pip install llama-cpp-python")
+            logger.error(
+                "llama-cpp-python not installed. Install with: pip install llama-cpp-python"
+            )
             return False
         except Exception as e:
             logger.error("Failed to load LLM: %s", e)

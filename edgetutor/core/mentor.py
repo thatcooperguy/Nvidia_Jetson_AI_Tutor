@@ -142,6 +142,7 @@ def get_system_stats_text() -> str:
         avail_ram = get_available_ram_gb()
 
         from edgetutor.core.settings import get_settings
+
         cfg = get_settings()
 
         stats = [
@@ -178,10 +179,7 @@ def build_mentor_prompt(age: str = "10") -> str:
 
 def get_mentor_topic_list() -> list[dict]:
     """Return the list of mentor topics for the UI."""
-    return [
-        {"key": key, "title": info["title"]}
-        for key, info in MENTOR_TOPICS.items()
-    ]
+    return [{"key": key, "title": info["title"]} for key, info in MENTOR_TOPICS.items()]
 
 
 def get_mentor_topic_prompt(topic_key: str) -> str:

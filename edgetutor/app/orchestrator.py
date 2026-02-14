@@ -150,9 +150,7 @@ class TutorOrchestrator:
         user_text = request.user_text
         if request.audio_array is not None and self._stt and self._stt.is_ready:
             t0 = time.time()
-            result = self._stt.transcribe_numpy(
-                request.audio_array, request.audio_sample_rate
-            )
+            result = self._stt.transcribe_numpy(request.audio_array, request.audio_sample_rate)
             response.latency["stt"] = time.time() - t0
             if result.get("text"):
                 user_text = result["text"]
@@ -259,7 +257,9 @@ class TutorOrchestrator:
         )
 
         response.latency["total"] = time.time() - total_t0
-        logger.info("Orchestrator total: %.1fs — latency=%s", response.latency["total"], response.latency)
+        logger.info(
+            "Orchestrator total: %.1fs — latency=%s", response.latency["total"], response.latency
+        )
 
         return response
 
@@ -359,9 +359,7 @@ class TutorOrchestrator:
         if "quiz_mode" in overrides:
             cfg.quiz_mode = bool(overrides["quiz_mode"])
 
-    def _generate_suggestions(
-        self, user_text: str, ocr_text: str, subject: str
-    ) -> list[str]:
+    def _generate_suggestions(self, user_text: str, ocr_text: str, subject: str) -> list[str]:
         """Generate 'next steps' suggestions based on context."""
         suggestions = []
 

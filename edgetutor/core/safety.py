@@ -20,8 +20,14 @@ _BLOCKED_INPUT_PATTERNS: list[tuple[re.Pattern, str]] = []
 
 _BLOCKED_KEYWORDS = [
     # Violence / weapons
-    (r"\b(how\s+to\s+)?(make|build|create)\s+(a\s+)?(bomb|weapon|gun|explosive|poison)\b", "weapons"),
-    (r"\b(kill|murder|assassinate|shoot|stab)\s+(someone|a\s+person|people|him|her|them)\b", "violence"),
+    (
+        r"\b(how\s+to\s+)?(make|build|create)\s+(a\s+)?(bomb|weapon|gun|explosive|poison)\b",
+        "weapons",
+    ),
+    (
+        r"\b(kill|murder|assassinate|shoot|stab)\s+(someone|a\s+person|people|him|her|them)\b",
+        "violence",
+    ),
     # Self-harm
     (r"\b(how\s+to\s+)?(commit\s+)?suicide\b", "self-harm"),
     (r"\b(cut|harm|hurt)\s+(myself|yourself|themselves)\b", "self-harm"),
@@ -36,9 +42,7 @@ _BLOCKED_KEYWORDS = [
 ]
 
 for pattern_str, category in _BLOCKED_KEYWORDS:
-    _BLOCKED_INPUT_PATTERNS.append(
-        (re.compile(pattern_str, re.IGNORECASE), category)
-    )
+    _BLOCKED_INPUT_PATTERNS.append((re.compile(pattern_str, re.IGNORECASE), category))
 
 # ── Calm redirect message ─────────────────────────────────────────────────────
 REDIRECT_MESSAGE = (

@@ -56,9 +56,7 @@ class Settings(BaseSettings):
     stt_enabled: bool = Field(default=True, alias="STT_ENABLED")
 
     # ── TTS ───────────────────────────────────────────────────────────────────
-    tts_voice_model: str = Field(
-        default="voices/en_US-lessac-medium.onnx", alias="TTS_VOICE_MODEL"
-    )
+    tts_voice_model: str = Field(default="voices/en_US-lessac-medium.onnx", alias="TTS_VOICE_MODEL")
     tts_enabled: bool = Field(default=True, alias="TTS_ENABLED")
     tts_rate: float = Field(default=1.0, alias="TTS_RATE")
 

@@ -53,7 +53,7 @@ class TestModelTiers:
         """Model tiers should be ordered from largest to smallest."""
         for i in range(len(MODEL_TIERS) - 1):
             assert MODEL_TIERS[i]["size_gb"] >= MODEL_TIERS[i + 1]["size_gb"], (
-                f"Model tiers not ordered: {MODEL_TIERS[i]['name']} > {MODEL_TIERS[i+1]['name']}"
+                f"Model tiers not ordered: {MODEL_TIERS[i]['name']} > {MODEL_TIERS[i + 1]['name']}"
             )
 
     def test_all_tiers_have_required_fields(self):

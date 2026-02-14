@@ -58,7 +58,10 @@ class TestOrchestratorInit:
         """Suggestions with OCR context should offer follow-ups."""
         orch = TutorOrchestrator()
         suggestions = orch._generate_suggestions("", "some ocr text", "math")
-        assert any("scan" in s.lower() or "explain" in s.lower() or "check" in s.lower() for s in suggestions)
+        assert any(
+            "scan" in s.lower() or "explain" in s.lower() or "check" in s.lower()
+            for s in suggestions
+        )
 
     def test_apply_settings(self):
         """_apply_settings should update runtime config."""

@@ -282,7 +282,9 @@ def get_gpu_memory_gb() -> tuple[float, float]:
     try:
         result = subprocess.run(
             ["nvidia-smi", "--query-gpu=memory.total,memory.free", "--format=csv,nounits,noheader"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         if result.returncode == 0:
             parts = result.stdout.strip().split(",")
@@ -348,7 +350,9 @@ def detect_jetson_board() -> str:
     # Not a Jetson — check for GPU
     try:
         result = subprocess.run(
-            ["nvidia-smi"], capture_output=True, timeout=5,
+            ["nvidia-smi"],
+            capture_output=True,
+            timeout=5,
         )
         if result.returncode == 0:
             return "generic_gpu"
@@ -403,7 +407,10 @@ def recommend_model_for_available_memory() -> dict:
         if usable >= required:
             logger.info(
                 "Recommended model: %s (%.1f GB, need %.1f GB, have %.1f GB usable)",
-                tier["name"], tier["size_gb"], required, usable,
+                tier["name"],
+                tier["size_gb"],
+                required,
+                usable,
             )
             # Adjust GPU layers based on available memory
             gpu_layers = 20
@@ -452,7 +459,9 @@ def get_power_mode() -> str:
     try:
         result = subprocess.run(
             ["nvpmodel", "-q"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         if result.returncode == 0:
             for line in result.stdout.split("\n"):
@@ -472,7 +481,9 @@ def get_jetson_clocks_status() -> str:
     try:
         result = subprocess.run(
             ["jetson_clocks", "--show"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         if result.returncode == 0:
             return "active"
@@ -545,8 +556,12 @@ def print_system_info() -> None:
     print(f"  GPU:            {info['gpu_name']}")
     print(f"  CUDA cores:     {info['cuda_cores']}")
     print(f"  CPU cores:      {info['cpu_cores']}")
-    print(f"  RAM:            {info['ram_total_gb']:.1f} GB total, {info['ram_available_gb']:.1f} GB available")
-    print(f"  GPU memory:     {info['gpu_mem_total_gb']:.1f} GB total, {info['gpu_mem_free_gb']:.1f} GB free")
+    print(
+        f"  RAM:            {info['ram_total_gb']:.1f} GB total, {info['ram_available_gb']:.1f} GB available"
+    )
+    print(
+        f"  GPU memory:     {info['gpu_mem_total_gb']:.1f} GB total, {info['gpu_mem_free_gb']:.1f} GB free"
+    )
     print(f"  Unified memory: {'Yes' if info['unified_memory'] else 'No'}")
     print(f"  Power mode:     {info['power_mode']}")
     print(f"  Tegra device:   {'Yes' if info['is_tegra'] else 'No'}")

@@ -198,11 +198,13 @@ class RAGStore:
             if idx < 0 or idx >= len(self.chunks):
                 continue
             chunk = self.chunks[idx]
-            results.append({
-                "text": chunk["text"],
-                "source": chunk["source"],
-                "score": float(score),
-            })
+            results.append(
+                {
+                    "text": chunk["text"],
+                    "source": chunk["source"],
+                    "score": float(score),
+                }
+            )
 
         return results
 

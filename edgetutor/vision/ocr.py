@@ -92,9 +92,7 @@ class OCREngine:
             t0 = time.time()
 
             # Get detailed data for confidence
-            data = pytesseract.image_to_data(
-                image, lang=lang, output_type=pytesseract.Output.DICT
-            )
+            data = pytesseract.image_to_data(image, lang=lang, output_type=pytesseract.Output.DICT)
 
             # Also get plain text (often cleaner)
             text = pytesseract.image_to_string(image, lang=lang).strip()

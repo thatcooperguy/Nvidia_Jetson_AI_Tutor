@@ -167,7 +167,13 @@ class STTEngine:
             Same dict as transcribe().
         """
         if not self._ready or self.model is None:
-            return {"text": "", "language": "", "duration_s": 0.0, "elapsed_s": 0.0, "error": "STT not loaded"}
+            return {
+                "text": "",
+                "language": "",
+                "duration_s": 0.0,
+                "elapsed_s": 0.0,
+                "error": "STT not loaded",
+            }
 
         import numpy as np
 
@@ -209,7 +215,13 @@ class STTEngine:
 
         except Exception as e:
             logger.error("STT numpy transcription failed: %s", e)
-            return {"text": "", "language": "", "duration_s": 0.0, "elapsed_s": 0.0, "error": str(e)}
+            return {
+                "text": "",
+                "language": "",
+                "duration_s": 0.0,
+                "elapsed_s": 0.0,
+                "error": str(e),
+            }
 
 
 def get_stt() -> STTEngine:
