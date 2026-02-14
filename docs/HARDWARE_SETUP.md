@@ -296,8 +296,8 @@ You should see CUDA 12.x. If not, JetPack may not be installed correctly.
 
 ```bash
 # Clone the repository
-git clone https://github.com/thatcooperguy/edgetutor-ai.git
-cd edgetutor-ai
+git clone https://github.com/thatcooperguy/Nvidia_Jetson_AI_Tutor.git
+cd Nvidia_Jetson_AI_Tutor
 
 # Run setup (installs everything, downloads models)
 chmod +x scripts/setup_jetson.sh

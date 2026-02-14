@@ -2,7 +2,7 @@
 
 **An offline AI tutor for NVIDIA Jetson — voice, vision, and chat for students.**
 
-[![CI](https://github.com/thatcooperguy/edgetutor-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/thatcooperguy/edgetutor-ai/actions)
+[![CI](https://github.com/thatcooperguy/Nvidia_Jetson_AI_Tutor/actions/workflows/ci.yml/badge.svg)](https://github.com/thatcooperguy/Nvidia_Jetson_AI_Tutor/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-green.svg)](https://python.org)
 
@@ -62,8 +62,8 @@ Socratic-style guidance.
 ### 1. Clone & Setup (one command)
 
 ```bash
-git clone https://github.com/thatcooperguy/edgetutor-ai.git
-cd edgetutor-ai
+git clone https://github.com/thatcooperguy/Nvidia_Jetson_AI_Tutor.git
+cd Nvidia_Jetson_AI_Tutor
 chmod +x scripts/*.sh
 ./scripts/setup_jetson.sh
 ```
@@ -219,7 +219,7 @@ ruff check edgetutor/
 
 ## 🗺️ Roadmap
 
-See [GitHub Issues](https://github.com/thatcooperguy/edgetutor-ai/issues)
+See [GitHub Issues](https://github.com/thatcooperguy/Nvidia_Jetson_AI_Tutor/issues)
 for planned features:
 
 - [ ] Wake word detection ("Hey EdgeTutor")
@@ -257,6 +257,15 @@ Built with these excellent open-source projects:
 - [Tesseract](https://github.com/tesseract-ocr/tesseract) — OCR
 - [FAISS](https://github.com/facebookresearch/faiss) — Vector search
 - [sentence-transformers](https://www.sbert.net) — Embeddings
+
+---
+
+## ⚠️ Disclaimer
+
+This is an independent open-source project and is **not affiliated with or
+endorsed by NVIDIA**. NVIDIA, Jetson, Tegra, JetPack, and related marks are
+trademarks of NVIDIA Corporation. This project is built by the community
+for the community.
 
 ---
 

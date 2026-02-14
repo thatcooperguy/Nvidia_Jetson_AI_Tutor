@@ -54,9 +54,9 @@ gpu = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/thatcooperguy/edgetutor-ai"
-Repository = "https://github.com/thatcooperguy/edgetutor-ai"
-Issues = "https://github.com/thatcooperguy/edgetutor-ai/issues"
+Homepage = "https://github.com/thatcooperguy/Nvidia_Jetson_AI_Tutor"
+Repository = "https://github.com/thatcooperguy/Nvidia_Jetson_AI_Tutor"
+Issues = "https://github.com/thatcooperguy/Nvidia_Jetson_AI_Tutor/issues"
 
 [tool.setuptools.packages.find]
 include = ["edgetutor*"]
