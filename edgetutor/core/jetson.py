@@ -437,30 +437,127 @@ def recommend_model_for_available_memory() -> dict:
     }
 
 
-def print_system_info() -> None:
-    """Print system info summary (for setup scripts and debugging)."""
+def get_cpu_cores() -> int:
+    """Get the number of CPU cores."""
+    try:
+        return os.cpu_count() or 1
+    except Exception:
+        return 1
+
+
+def get_power_mode() -> str:
+    """
+    Get the current NVPModel power mode on Jetson.
+
+    Returns a string like "MAXN", "15W", "7W", or "unknown".
+    """
+    try:
+        result = subprocess.run(
+            ["nvpmodel", "-q"],
+            capture_output=True, text=True, timeout=5,
+        )
+        if result.returncode == 0:
+            for line in result.stdout.split("\n"):
+                if "NV Power Mode" in line or "POWER_MODEL" in line:
+                    return line.split(":")[-1].strip()
+                if "mode:" in line.lower():
+                    return line.split(":")[-1].strip()
+            # If we got output but couldn't parse, return the first line
+            return result.stdout.strip().split("\n")[0][:40]
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+    return "unknown"
+
+
+def get_jetson_clocks_status() -> str:
+    """Check if jetson_clocks is active (max performance)."""
+    try:
+        result = subprocess.run(
+            ["jetson_clocks", "--show"],
+            capture_output=True, text=True, timeout=5,
+        )
+        if result.returncode == 0:
+            return "active"
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+    return "unknown"
+
+
+def is_tegra_device() -> bool:
+    """Check if running on any NVIDIA Tegra-based device (Jetson, Spark, etc.)."""
+    indicators = [
+        "/etc/nv_tegra_release",
+        "/proc/device-tree/compatible",
+    ]
+    for path in indicators:
+        if os.path.exists(path):
+            try:
+                with open(path) as f:
+                    content = f.read().lower()
+                if "tegra" in content or "nvidia" in content:
+                    return True
+            except (PermissionError, UnicodeDecodeError):
+                if os.path.exists(path):
+                    return True  # File exists, likely Tegra
+    return False
+
+
+def get_full_system_info() -> dict:
+    """
+    Collect comprehensive system information as a dict.
+
+    Used by the AI Mentor mode and system diagnostics.
+    """
     profile = get_board_profile()
     total = get_total_ram_gb()
     available = get_available_ram_gb()
     gpu_total, gpu_free = get_gpu_memory_gb()
     rec = recommend_model_for_available_memory()
 
+    return {
+        "board_name": profile.name,
+        "gpu_name": profile.gpu_name,
+        "cuda_cores": profile.cuda_cores,
+        "cpu_cores": get_cpu_cores(),
+        "ram_total_gb": total,
+        "ram_available_gb": available,
+        "gpu_mem_total_gb": gpu_total,
+        "gpu_mem_free_gb": gpu_free,
+        "unified_memory": profile.gpu_ram_shared,
+        "power_mode": get_power_mode(),
+        "jetson_clocks": get_jetson_clocks_status(),
+        "is_tegra": is_tegra_device(),
+        "recommended_model": rec["model"],
+        "recommended_gpu_layers": rec["gpu_layers"],
+        "recommended_context": rec["context_size"],
+        "recommended_stt": rec["stt_model"],
+        "scaling_reason": rec["reason"],
+        "profile_notes": profile.notes,
+    }
+
+
+def print_system_info() -> None:
+    """Print system info summary (for setup scripts and debugging)."""
+    info = get_full_system_info()
+
     print("=" * 60)
     print("  EdgeTutor AI — System Information")
     print("=" * 60)
-    print(f"  Board:          {profile.name}")
-    print(f"  GPU:            {profile.gpu_name}")
-    print(f"  CUDA cores:     {profile.cuda_cores}")
-    print(f"  RAM:            {total:.1f} GB total, {available:.1f} GB available")
-    print(f"  GPU memory:     {gpu_total:.1f} GB total, {gpu_free:.1f} GB free (shared)")
-    print(f"  Unified memory: {'Yes' if profile.gpu_ram_shared else 'No'}")
+    print(f"  Board:          {info['board_name']}")
+    print(f"  GPU:            {info['gpu_name']}")
+    print(f"  CUDA cores:     {info['cuda_cores']}")
+    print(f"  CPU cores:      {info['cpu_cores']}")
+    print(f"  RAM:            {info['ram_total_gb']:.1f} GB total, {info['ram_available_gb']:.1f} GB available")
+    print(f"  GPU memory:     {info['gpu_mem_total_gb']:.1f} GB total, {info['gpu_mem_free_gb']:.1f} GB free")
+    print(f"  Unified memory: {'Yes' if info['unified_memory'] else 'No'}")
+    print(f"  Power mode:     {info['power_mode']}")
+    print(f"  Tegra device:   {'Yes' if info['is_tegra'] else 'No'}")
     print()
     print("  Recommended configuration:")
-    print(f"    LLM model:      {rec['model']}")
-    print(f"    GPU layers:     {rec['gpu_layers']}")
-    print(f"    Context size:   {rec['context_size']}")
-    print(f"    STT model:      {rec['stt_model']}")
-    print(f"    STT compute:    {rec['stt_compute']}")
-    print(f"    Reason:         {rec['reason']}")
-    print(f"  Notes: {profile.notes}")
+    print(f"    LLM model:      {info['recommended_model']}")
+    print(f"    GPU layers:     {info['recommended_gpu_layers']}")
+    print(f"    Context size:   {info['recommended_context']}")
+    print(f"    STT model:      {info['recommended_stt']}")
+    print(f"    Reason:         {info['scaling_reason']}")
+    print(f"  Notes: {info['profile_notes']}")
     print("=" * 60)
