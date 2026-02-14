@@ -59,7 +59,7 @@ echo "  ✅ Python venv ready ($(python3 --version))"
 # ── Step 3: Install Python dependencies ──────────────────────────────────────
 echo ""
 echo "▶ [3/7] Installing Python dependencies..."
-pip install -e "${REPO_ROOT}[dev]" -q 2>&1 | tail -5
+pip install -e "${REPO_ROOT}[ai,dev]" -q 2>&1 | tail -5
 
 echo "  ✅ Python dependencies installed."
 

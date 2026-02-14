@@ -221,16 +221,37 @@ edgetutor-ai/
 
 ## 🧪 Development
 
+### Install for Development
+
+```bash
+# Lightweight (CI / testing only — no heavy AI deps)
+pip install -e ".[dev]"
+
+# Full stack (includes Gradio, LLM, STT, TTS, RAG)
+pip install -e ".[all]"
+```
+
+> **On Jetson**: Use `./scripts/setup_jetson.sh` — it installs everything including
+> CUDA-accelerated llama.cpp automatically.
+
+### Dependency Extras
+
+| Extra | What's included | Use case |
+|-------|----------------|----------|
+| _(base)_ | pydantic, numpy, Pillow, pytesseract | Always installed |
+| `[dev]` | pytest, ruff, black | CI and linting |
+| `[ai]` | gradio, llama-cpp, whisper, piper, faiss, sentence-transformers | On-device inference |
+| `[all]` | `[ai]` + `[dev]` combined | Full local development |
+
 ### Run Tests
 ```bash
-source .venv/bin/activate
 pytest edgetutor/tests/ -v
 ```
 
-### Lint
+### Lint & Format
 ```bash
-pip install ruff
 ruff check edgetutor/
+ruff format --check edgetutor/
 ```
 
 ### Run in Debug Mode
@@ -255,12 +276,11 @@ for planned features:
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please:
+Contributions are welcome! See **[CONTRIBUTING.md](CONTRIBUTING.md)** for:
 
-1. Fork the repository
-2. Create a feature branch
-3. Write tests for new functionality
-4. Submit a pull request
+- Development setup and dependency tiers
+- Testing, linting, and formatting instructions
+- Pull request guidelines and code style
 
 ---
 

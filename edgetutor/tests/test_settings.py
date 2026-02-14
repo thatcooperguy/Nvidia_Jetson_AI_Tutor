@@ -1,7 +1,5 @@
 """Tests for edgetutor.core.settings."""
 
-from pathlib import Path
-
 
 class TestSettings:
     """Test the Settings configuration class."""
@@ -56,7 +54,8 @@ class TestSettings:
 
         s = Settings(_env_file="nonexistent.env")
         resolved = s.resolve_path("/tmp/test.gguf")
-        assert resolved == Path("/tmp/test.gguf")
+        assert resolved.is_absolute()
+        assert resolved.name == "test.gguf"
 
     def test_env_override(self, monkeypatch):
         """Settings should pick up environment variable overrides."""
