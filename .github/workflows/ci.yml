@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, agent/mvp]
+    branches: [main, agent/mvp, agent/mentor-evolution]
   pull_request:
     branches: [main]
 
