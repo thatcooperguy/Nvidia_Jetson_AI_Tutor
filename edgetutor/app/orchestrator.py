@@ -8,8 +8,8 @@ routes through the appropriate modules, and produces a tutor response.
 from __future__ import annotations
 
 import time
+from collections.abc import Generator
 from dataclasses import dataclass, field
-from typing import Generator, Optional
 
 from edgetutor.core.logging_config import get_logger
 from edgetutor.core.settings import get_settings
@@ -22,11 +22,11 @@ class TutorRequest:
     """Input to the orchestrator."""
 
     user_text: str = ""
-    audio_path: Optional[str] = None
-    audio_array: Optional[object] = None  # numpy array from Gradio
+    audio_path: str | None = None
+    audio_array: object | None = None  # numpy array from Gradio
     audio_sample_rate: int = 16000
-    image: Optional[object] = None  # PIL Image or numpy array
-    settings_override: Optional[dict] = None
+    image: object | None = None  # PIL Image or numpy array
+    settings_override: dict | None = None
 
 
 @dataclass
@@ -34,7 +34,7 @@ class TutorResponse:
     """Output from the orchestrator."""
 
     text: str = ""
-    audio: Optional[tuple] = None  # (sample_rate, numpy_array) for Gradio
+    audio: tuple | None = None  # (sample_rate, numpy_array) for Gradio
     ocr_text: str = ""
     has_math: bool = False
     math_expressions: list[str] = field(default_factory=list)
@@ -133,7 +133,7 @@ class TutorOrchestrator:
     def process(
         self,
         request: TutorRequest,
-        conversation_history: Optional[list[dict]] = None,
+        conversation_history: list[dict] | None = None,
     ) -> TutorResponse:
         """
         Process a tutor request end-to-end (non-streaming).
@@ -266,7 +266,7 @@ class TutorOrchestrator:
     def process_stream(
         self,
         request: TutorRequest,
-        conversation_history: Optional[list[dict]] = None,
+        conversation_history: list[dict] | None = None,
     ) -> Generator[str, None, None]:
         """
         Process a tutor request with streaming LLM output.

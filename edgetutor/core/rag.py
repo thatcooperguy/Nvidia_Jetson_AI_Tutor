@@ -10,7 +10,6 @@ from __future__ import annotations
 import json
 import time
 from pathlib import Path
-from typing import Optional
 
 from edgetutor.core.logging_config import get_logger
 from edgetutor.core.settings import get_settings
@@ -85,7 +84,7 @@ class RAGStore:
             logger.error("Failed to load FAISS index: %s", e)
             return False
 
-    def ingest(self, content_dir: Optional[Path] = None) -> int:
+    def ingest(self, content_dir: Path | None = None) -> int:
         """
         Ingest documents from content directory into FAISS index.
 
@@ -177,7 +176,7 @@ class RAGStore:
         logger.info("FAISS index saved to %s (%d vectors)", index_dir, self.index.ntotal)
         return len(self.chunks)
 
-    def query(self, text: str, top_k: Optional[int] = None) -> list[dict]:
+    def query(self, text: str, top_k: int | None = None) -> list[dict]:
         """
         Retrieve the most relevant chunks for a query.
 

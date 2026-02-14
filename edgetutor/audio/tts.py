@@ -8,11 +8,9 @@ Outputs WAV audio that can be played in the Gradio UI or saved to file.
 from __future__ import annotations
 
 import io
-import struct
 import time
 import wave
 from pathlib import Path
-from typing import Optional
 
 from edgetutor.core.logging_config import get_logger
 from edgetutor.core.settings import get_settings
@@ -76,7 +74,7 @@ class TTSEngine:
             logger.error("Failed to load TTS voice: %s", e)
             return False
 
-    def synthesize(self, text: str) -> Optional[bytes]:
+    def synthesize(self, text: str) -> bytes | None:
         """
         Synthesize text to WAV audio bytes.
 
@@ -144,7 +142,7 @@ class TTSEngine:
             logger.error("Failed to save TTS audio: %s", e)
             return False
 
-    def get_audio_tuple(self, text: str) -> Optional[tuple]:
+    def get_audio_tuple(self, text: str) -> tuple | None:
         """
         Synthesize and return (sample_rate, numpy_array) for Gradio.
 

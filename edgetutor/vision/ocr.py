@@ -10,7 +10,6 @@ from __future__ import annotations
 import re
 import time
 from pathlib import Path
-from typing import Optional
 
 from edgetutor.core.logging_config import get_logger
 from edgetutor.core.settings import get_settings
@@ -47,7 +46,7 @@ class OCREngine:
     def extract_text(
         self,
         image_input,
-        language: Optional[str] = None,
+        language: str | None = None,
     ) -> dict:
         """
         Extract text from an image.

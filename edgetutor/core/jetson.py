@@ -12,7 +12,6 @@ import os
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 from edgetutor.core.logging_config import get_logger
 

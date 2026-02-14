@@ -8,7 +8,7 @@ system prompt injection, and safety filtering.
 from __future__ import annotations
 
 import time
-from typing import Generator, Optional
+from collections.abc import Generator
 
 from edgetutor.core.logging_config import get_logger
 from edgetutor.core.prompts import build_system_prompt
@@ -74,10 +74,10 @@ class LLMBackend:
     def generate(
         self,
         user_message: str,
-        system_prompt: Optional[str] = None,
-        conversation_history: Optional[list[dict]] = None,
-        max_tokens: Optional[int] = None,
-        temperature: Optional[float] = None,
+        system_prompt: str | None = None,
+        conversation_history: list[dict] | None = None,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
     ) -> str:
         """
         Generate a complete response (non-streaming).
@@ -144,10 +144,10 @@ class LLMBackend:
     def generate_stream(
         self,
         user_message: str,
-        system_prompt: Optional[str] = None,
-        conversation_history: Optional[list[dict]] = None,
-        max_tokens: Optional[int] = None,
-        temperature: Optional[float] = None,
+        system_prompt: str | None = None,
+        conversation_history: list[dict] | None = None,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
     ) -> Generator[str, None, None]:
         """
         Stream tokens one-by-one (generator).

@@ -7,10 +7,8 @@ defaults so the app works out-of-the-box on a fresh Jetson.
 
 from __future__ import annotations
 
-import os
 from enum import Enum
 from pathlib import Path
-from typing import Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings
@@ -132,3 +130,9 @@ def get_settings() -> Settings:
     if not hasattr(get_settings, "_instance"):
         get_settings._instance = Settings()
     return get_settings._instance
+
+
+def reset_settings() -> None:
+    """Reset the cached settings singleton (for testing)."""
+    if hasattr(get_settings, "_instance"):
+        del get_settings._instance

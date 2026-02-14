@@ -7,9 +7,6 @@ Dark theme. Supports: AI Tutor, AI Mentor, camera/voice, settings.
 
 from __future__ import annotations
 
-import time
-from typing import Optional
-
 import gradio as gr
 
 from edgetutor.core.logging_config import get_logger
@@ -80,8 +77,8 @@ def _get_system_info_html() -> str:
 # ── Chat handler ──────────────────────────────────────────────────────────────
 def _chat_respond(
     message: str,
-    audio: Optional[tuple] = None,
-    image: Optional[object] = None,
+    audio: tuple | None = None,
+    image: object | None = None,
     history: list = None,
     age_mode: str = "10",
     subject_mode: str = "general",
