@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main, agent/mvp]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install ruff
+        run: pip install ruff
+      - name: Run ruff check
+        run: ruff check edgetutor/ --output-format=github
+      - name: Run ruff format check
+        run: ruff format --check edgetutor/
+
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-eng
+
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run tests
+        run: |
+          pytest edgetutor/tests/ -v --tb=short -x
+        env:
+          # Disable hardware-dependent features in CI
+          STT_ENABLED: "false"
+          TTS_ENABLED: "false"
+          CAMERA_ENABLED: "false"
+          LLM_MODEL_PATH: "models/nonexistent.gguf"
