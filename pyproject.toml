@@ -1,6 +1,6 @@
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
-build-backend = "setuptools.backends._legacy:_Backend"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "edgetutor-ai"
@@ -25,27 +25,33 @@ classifiers = [
 ]
 
 dependencies = [
-    "gradio>=4.0,<5.0",
     "python-dotenv>=1.0",
     "pydantic>=2.0",
     "pydantic-settings>=2.0",
     "Pillow>=10.0",
     "numpy>=1.24",
     "pytesseract>=0.3.10",
+    "pypdf>=3.0",
+]
+
+[project.optional-dependencies]
+# Heavy ML/AI deps — installed on device, not required for linting/testing
+ai = [
+    "gradio>=4.0,<5.0",
     "llama-cpp-python>=0.2.50",
     "faster-whisper>=1.0.0",
     "piper-tts>=1.2.0",
     "faiss-cpu>=1.7.4",
     "sentence-transformers>=2.2.0",
-    "pypdf>=3.0",
 ]
-
-[project.optional-dependencies]
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
     "ruff>=0.3.0",
     "black>=24.0",
+]
+all = [
+    "edgetutor-ai[ai,dev]",
 ]
 gpu = [
     # On Jetson, install llama-cpp-python with CUDA support:

@@ -8,8 +8,8 @@ It turns the device itself into a learning lab.
 
 from __future__ import annotations
 
+from edgetutor.core.jetson import get_available_ram_gb, get_board_profile, get_total_ram_gb
 from edgetutor.core.logging_config import get_logger
-from edgetutor.core.jetson import get_board_profile, get_total_ram_gb, get_available_ram_gb
 
 logger = get_logger(__name__)
 
@@ -149,13 +149,13 @@ def get_system_stats_text() -> str:
             f"GPU: {profile.gpu_name}",
             f"CUDA Cores: {profile.cuda_cores}",
             f"RAM: {total_ram:.1f} GB total, {avail_ram:.1f} GB available",
-            f"Memory type: Unified (shared between CPU and GPU)",
+            "Memory type: Unified (shared between CPU and GPU)",
             f"LLM model: {cfg.llm_model_path}",
             f"LLM GPU layers: {cfg.llm_n_gpu_layers}",
             f"LLM context window: {cfg.llm_context_size} tokens",
             f"STT model: Whisper {cfg.stt_model_size}",
-            f"TTS: Piper (offline voice synthesis)",
-            f"OCR: Tesseract (image text extraction)",
+            "TTS: Piper (offline voice synthesis)",
+            "OCR: Tesseract (image text extraction)",
         ]
         return "\n".join(stats)
     except Exception as e:

@@ -196,8 +196,8 @@ class TutorOrchestrator:
         # ─── Step 4: Build the prompt and call LLM ───────────────────────
         if self._llm and self._llm.is_loaded:
             from edgetutor.core.prompts import (
-                build_rag_context,
                 build_quiz_prompt,
+                build_rag_context,
                 build_vision_prompt,
             )
 
@@ -312,7 +312,7 @@ class TutorOrchestrator:
             yield "[EdgeTutor] Language model not loaded. Check models/ folder."
             return
 
-        from edgetutor.core.prompts import build_rag_context, build_quiz_prompt, build_vision_prompt
+        from edgetutor.core.prompts import build_quiz_prompt, build_rag_context, build_vision_prompt
 
         if ocr_text:
             final_message = build_vision_prompt(ocr_text=ocr_text, is_math=has_math)
@@ -342,19 +342,18 @@ class TutorOrchestrator:
 
     def _apply_settings(self, overrides: dict) -> None:
         """Apply runtime setting overrides."""
-        cfg = get_settings()
+        import contextlib
+
         from edgetutor.core.settings import AgeMode, SubjectMode
 
+        cfg = get_settings()
+
         if "age_mode" in overrides:
-            try:
+            with contextlib.suppress(ValueError):
                 cfg.age_mode = AgeMode(str(overrides["age_mode"]))
-            except ValueError:
-                pass
         if "subject_mode" in overrides:
-            try:
+            with contextlib.suppress(ValueError):
                 cfg.subject_mode = SubjectMode(overrides["subject_mode"])
-            except ValueError:
-                pass
         if "parent_mode" in overrides:
             cfg.parent_mode = bool(overrides["parent_mode"])
         if "quiz_mode" in overrides:

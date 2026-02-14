@@ -73,8 +73,8 @@ class OCREngine:
         lang = language or cfg.ocr_language
 
         try:
-            from PIL import Image
             import pytesseract
+            from PIL import Image
 
             # Normalize input to PIL Image
             if isinstance(image_input, (str, Path)):

@@ -1,7 +1,5 @@
 """Tests for edgetutor.vision.ocr — OCR pipeline and math detection."""
 
-import pytest
-
 
 class TestMathDetection:
     """Test the math detection heuristics (does not require Tesseract)."""

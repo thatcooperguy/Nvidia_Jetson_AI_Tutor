@@ -404,7 +404,6 @@ def build_ui() -> gr.Blocks:
 
                     with gr.Column(scale=2):
                         gr.Markdown("#### 📖 Explore Topics")
-                        mentor_topic = gr.State("none")
 
                         topic_buttons = {}
                         topic_labels = {

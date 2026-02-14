@@ -1,7 +1,5 @@
 """Tests for edgetutor.app.orchestrator — tutor orchestrator."""
 
-import pytest
-
 from edgetutor.app.orchestrator import TutorOrchestrator, TutorRequest, TutorResponse
 
 

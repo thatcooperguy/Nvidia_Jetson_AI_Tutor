@@ -1,7 +1,5 @@
 """Tests for edgetutor.core.safety — kid-safe guardrail layer."""
 
-import pytest
-
 from edgetutor.core.safety import (
     REDIRECT_MESSAGE,
     check_input_safety,

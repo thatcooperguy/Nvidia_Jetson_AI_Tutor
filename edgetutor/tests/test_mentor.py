@@ -1,7 +1,5 @@
 """Tests for edgetutor.core.mentor — AI Mentor mode."""
 
-import pytest
-
 from edgetutor.core.mentor import (
     MENTOR_TOPICS,
     build_mentor_prompt,

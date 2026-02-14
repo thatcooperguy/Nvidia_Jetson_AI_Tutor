@@ -69,7 +69,7 @@ class RAGStore:
             import faiss
 
             self.index = faiss.read_index(str(index_file))
-            with open(meta_file, "r", encoding="utf-8") as f:
+            with open(meta_file, encoding="utf-8") as f:
                 self.chunks = json.load(f)
 
             logger.info(
@@ -147,8 +147,6 @@ class RAGStore:
         logger.info("Chunked %d documents into %d chunks", len(documents), len(self.chunks))
 
         # Embed
-        import numpy as np
-
         texts = [c["text"] for c in self.chunks]
         t0 = time.time()
         embeddings = self.embedder.encode(texts, show_progress_bar=True, convert_to_numpy=True)
@@ -188,7 +186,6 @@ class RAGStore:
         cfg = get_settings()
         k = top_k or cfg.rag_top_k
 
-        import numpy as np
         import faiss
 
         query_vec = self.embedder.encode([text], convert_to_numpy=True)
@@ -197,7 +194,7 @@ class RAGStore:
         scores, indices = self.index.search(query_vec, min(k, self.index.ntotal))
 
         results = []
-        for score, idx in zip(scores[0], indices[0]):
+        for score, idx in zip(scores[0], indices[0], strict=False):
             if idx < 0 or idx >= len(self.chunks):
                 continue
             chunk = self.chunks[idx]

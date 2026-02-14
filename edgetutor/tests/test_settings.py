@@ -1,9 +1,6 @@
 """Tests for edgetutor.core.settings."""
 
-import os
 from pathlib import Path
-
-import pytest
 
 
 class TestSettings:

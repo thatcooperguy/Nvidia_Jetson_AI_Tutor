@@ -11,7 +11,6 @@ from __future__ import annotations
 import logging
 import sys
 from logging.handlers import RotatingFileHandler
-from pathlib import Path
 
 from edgetutor.core.settings import get_settings
 

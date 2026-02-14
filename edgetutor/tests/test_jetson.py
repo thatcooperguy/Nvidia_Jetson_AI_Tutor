@@ -1,7 +1,5 @@
 """Tests for edgetutor.core.jetson — hardware detection and model recommendation."""
 
-import pytest
-
 from edgetutor.core.jetson import (
     JETSON_PROFILES,
     MODEL_TIERS,
