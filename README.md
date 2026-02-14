@@ -1,17 +1,28 @@
 # 🎓 EdgeTutor AI
 
-**An offline AI tutor for NVIDIA Jetson — voice, vision, and chat for students.**
+**Offline-first AI Tutor + AI Mentor for NVIDIA Tegra / Jetson platforms.**
 
 [![CI](https://github.com/thatcooperguy/Nvidia_Jetson_AI_Tutor/actions/workflows/ci.yml/badge.svg)](https://github.com/thatcooperguy/Nvidia_Jetson_AI_Tutor/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-green.svg)](https://python.org)
 
-EdgeTutor AI is a **fully offline**, **kid-safe** AI tutoring system that runs
-on an NVIDIA Jetson device. Students can ask questions by typing, speaking, or
-holding up a worksheet — and the tutor responds with age-appropriate,
-Socratic-style guidance.
+EdgeTutor AI is a **fully offline**, **kid-safe**, **hardware-aware** AI
+platform that runs on NVIDIA Jetson devices (and compatible Tegra-based
+systems). It's three things in one:
 
-**No cloud. No telemetry. No internet required at runtime.**
+1. **📚 A Learning Tutor** — Students ask questions by typing, speaking, or
+   holding up a worksheet. The tutor responds with age-appropriate,
+   Socratic-style guidance.
+2. **🧠 An AI Mentor** — Learn how GPUs, CUDA, LLMs, quantization, and edge
+   AI actually work — using the real hardware sitting on your desk.
+3. **🔬 A Local AI Lab** — An introduction to building and running AI systems
+   on real hardware, with no cloud dependency.
+
+**Setup online once. Inference stays local. No telemetry. No cloud calls at runtime.**
+
+> **⚠️ Disclaimer:** This is an independent open-source project and is **not
+> affiliated with or endorsed by NVIDIA**. NVIDIA, Jetson, Tegra, JetPack,
+> and related marks are trademarks of NVIDIA Corporation.
 
 ---
 
@@ -20,6 +31,7 @@ Socratic-style guidance.
 | Feature | Description |
 |---------|-------------|
 | 💬 **Chat Tutor** | Ask any school subject question via text |
+| 🧠 **AI Mentor** | Learn how GPUs, CUDA, LLMs, and AI work — on real hardware |
 | 🎤 **Voice Input** | Push-to-talk speech recognition (faster-whisper) |
 | 🔊 **Voice Output** | Tutor speaks responses aloud (Piper TTS) |
 | 📷 **Worksheet Scanner** | Hold up a page → OCR → explain step-by-step |
@@ -30,8 +42,9 @@ Socratic-style guidance.
 | 🔓 **Parent Mode** | Direct answers + advanced settings |
 | 📖 **Content Packs** | RAG with your own curriculum (PDF/TXT/MD) |
 | 🛡️ **Kid-Safe** | Content filtering — refuses unsafe requests |
-| 🖥️ **Web UI** | Gradio interface accessible from any device on LAN |
-| ⚡ **Jetson Optimized** | CUDA/GPU acceleration, adaptive model selection |
+| 🖥️ **Dark Theme UI** | Clean, inspiring Gradio interface on LAN |
+| ⚡ **Hardware-Aware** | Auto-detects Jetson model, scales models to fit RAM |
+| 🔄 **Auto-Scaling** | Tiered fallback: picks the best model for your device |
 
 ---
 
@@ -47,11 +60,21 @@ Socratic-style guidance.
 - USB microphone (for voice input)
 - Speaker (for TTS output)
 
-### Also Works On
-- Jetson Orin NX 8/16GB
-- Jetson AGX Orin 32/64GB
-- Jetson Xavier NX (limited)
-- Any Linux system with NVIDIA GPU (for development)
+### Supported Tegra / Jetson Platforms
+
+| Platform | RAM | Status | Notes |
+|----------|-----|--------|-------|
+| **Orin Nano 8GB** | 8 GB | ⭐ Primary target | Best value |
+| **Orin Nano 4GB** | 4 GB | ✅ Supported | Smaller models auto-selected |
+| **Orin NX 8/16GB** | 8-16 GB | ✅ Supported | Great performance |
+| **AGX Orin 32/64GB** | 32-64 GB | ✅ Supported | Premium, can run larger models |
+| **Xavier NX** | 8 GB | ⚠️ Limited | Older GPU arch, use small models |
+| **Jetson Nano (orig)** | 4 GB | ⚠️ Minimal | Very constrained |
+| **Tegra / Spark (Linux)** | Varies | 🔬 Experimental | Where local inference is available |
+| **Any Linux + NVIDIA GPU** | 4+ GB | ✅ Dev/Testing | For development on desktop |
+
+The system **auto-detects your hardware** and selects appropriate models.
+JetPack 5.x and 6.x (Ubuntu 20.04 / 22.04) are both supported.
 
 > **📋 Full hardware guide with Amazon links**: [docs/HARDWARE_SETUP.md](docs/HARDWARE_SETUP.md)
 
