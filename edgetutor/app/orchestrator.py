@@ -10,9 +10,15 @@ from __future__ import annotations
 import time
 from collections.abc import Generator
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from edgetutor.core.logging_config import get_logger
 from edgetutor.core.settings import get_settings
+
+if TYPE_CHECKING:
+    import numpy as np
+    from numpy.typing import NDArray
+    from PIL import Image
 
 logger = get_logger(__name__)
 
@@ -23,9 +29,9 @@ class TutorRequest:
 
     user_text: str = ""
     audio_path: str | None = None
-    audio_array: object | None = None  # numpy array from Gradio
+    audio_array: NDArray[np.float32] | None = None
     audio_sample_rate: int = 16000
-    image: object | None = None  # PIL Image or numpy array
+    image: Image.Image | NDArray | None = None
     settings_override: dict | None = None
 
 

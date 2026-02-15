@@ -74,6 +74,11 @@ class Settings(BaseSettings):
     rag_top_k: int = Field(default=3, alias="RAG_TOP_K", ge=1, le=100)
     rag_chunk_size: int = Field(default=500, alias="RAG_CHUNK_SIZE", ge=50, le=10000)
 
+    # ── Conversation ─────────────────────────────────────────────────────────
+    conversation_history_limit: int = Field(
+        default=20, alias="CONVERSATION_HISTORY_LIMIT", ge=1, le=200
+    )
+
     # ── Safety ────────────────────────────────────────────────────────────────
     safety_enabled: bool = Field(default=True, alias="SAFETY_ENABLED")
 

@@ -7,16 +7,24 @@ Dark theme. Supports: AI Tutor (streaming), AI Mentor, camera/voice, settings.
 
 from __future__ import annotations
 
+import uuid
+from typing import TYPE_CHECKING
+
 import gradio as gr
 
+from edgetutor.core.conversations import get_conversation_store
 from edgetutor.core.logging_config import get_logger
 from edgetutor.core.settings import get_settings
+
+if TYPE_CHECKING:
+    from PIL import Image
 
 logger = get_logger(__name__)
 
 # ── Global state ──────────────────────────────────────────────────────────────
 _orchestrator = None
 _module_status = {}
+_conversation_store = None
 
 
 def _get_module_status_html() -> str:
@@ -75,8 +83,10 @@ def _get_system_info_html() -> str:
         return '<div style="color:#888">System info unavailable.</div>'
 
 
-def _build_conv_history(history: list | None, limit: int = 10) -> list[dict]:
+def _build_conv_history(history: list | None, limit: int | None = None) -> list[dict]:
     """Extract the last *limit* messages as [{role, content}] dicts."""
+    if limit is None:
+        limit = get_settings().conversation_history_limit
     conv = []
     for msg in (history or [])[-limit:]:
         if isinstance(msg, dict):
@@ -89,6 +99,15 @@ def _build_conv_history(history: list | None, limit: int = 10) -> list[dict]:
     return conv
 
 
+def _auto_save(session_id: str, history: list) -> None:
+    """Auto-save conversation history if store is available."""
+    if _conversation_store and session_id and history:
+        try:
+            _conversation_store.save(session_id, history)
+        except Exception as e:
+            logger.debug("Auto-save failed for %s: %s", session_id, e)
+
+
 def _format_errors(errors: list[str]) -> str:
     """Format orchestrator errors as a small HTML block."""
     if not errors:
@@ -97,12 +116,17 @@ def _format_errors(errors: list[str]) -> str:
     return f"\n\n<small>⚠️ **Warnings:**\n{lines}</small>"
 
 
+# ── Safety filter replacement sentinel ────────────────────────────────────────
+_SAFETY_REPLACE_MARKER = "\n\n[Response replaced by safety filter]"
+
+
 # ── Streaming chat handler ───────────────────────────────────────────────────
 def _chat_respond_stream(
     message: str,
     audio: tuple | None = None,
-    image: object | None = None,
+    image: Image.Image | None = None,
     history: list | None = None,
+    session_id: str = "",
     age_mode: str = "10",
     subject_mode: str = "general",
     parent_mode: bool = False,
@@ -118,7 +142,7 @@ def _chat_respond_stream(
 
     if _orchestrator is None:
         history.append({"role": "assistant", "content": "⚠️ System not initialized."})
-        yield history, history, None, ""
+        yield history, history, session_id, None, ""
         return
 
     from edgetutor.app.orchestrator import TutorRequest
@@ -162,20 +186,31 @@ def _chat_respond_stream(
     history.append({"role": "assistant", "content": ""})
 
     for token in _orchestrator.process_stream(request, conversation_history=conv_history):
+        # Handle safety filter replacement — replace the whole message
+        if _SAFETY_REPLACE_MARKER in token:
+            from edgetutor.core.safety import get_redirect_message
+
+            history[-1]["content"] = get_redirect_message()
+            yield history, history, session_id, None, ""
+            continue
+
         accumulated += token
         history[-1]["content"] = accumulated
-        yield history, history, None, ""
+        yield history, history, session_id, None, ""
+
+    # Auto-save conversation
+    _auto_save(session_id, history)
 
     # Final yield with complete text (no audio for streaming path)
-    yield history, history, None, ""
+    yield history, history, session_id, None, ""
 
 
 # ── Non-streaming fallback (used by worksheet scanner, step-by-step) ─────────
 def _chat_respond(
     message: str,
-    audio: tuple | None = None,
-    image: object | None = None,
+    image: Image.Image | None = None,
     history: list | None = None,
+    session_id: str = "",
     age_mode: str = "10",
     subject_mode: str = "general",
     parent_mode: bool = False,
@@ -187,7 +222,7 @@ def _chat_respond(
 
     if _orchestrator is None:
         history.append({"role": "assistant", "content": "⚠️ System not initialized."})
-        return history, history, None, ""
+        return history, history, session_id, None
 
     from edgetutor.app.orchestrator import TutorRequest
 
@@ -201,14 +236,6 @@ def _chat_respond(
         },
     )
 
-    if audio is not None:
-        try:
-            sr, audio_data = audio
-            request.audio_array = audio_data
-            request.audio_sample_rate = sr
-        except Exception as e:
-            logger.error("Audio processing error: %s", e)
-
     if image is not None:
         request.image = image
 
@@ -216,8 +243,6 @@ def _chat_respond(
     response = _orchestrator.process(request, conversation_history=conv_history)
 
     display_text = message
-    if not display_text and request.audio_array is not None:
-        display_text = "🎤 [Voice input]"
     if image is not None:
         display_text = (display_text or "") + " 📷 [Image attached]"
     if not display_text:
@@ -242,7 +267,11 @@ def _chat_respond(
         response_text += f"\n\n<small>⏱️ {' | '.join(latency_parts)}</small>"
 
     history.append({"role": "assistant", "content": response_text})
-    return history, history, response.audio, ""
+
+    # Auto-save conversation
+    _auto_save(session_id, history)
+
+    return history, history, session_id, response.audio
 
 
 # ── Mentor chat handler ───────────────────────────────────────────────────────
@@ -250,6 +279,7 @@ def _mentor_respond(
     message: str,
     mentor_topic: str,
     history: list | None = None,
+    session_id: str = "",
     age_mode: str = "10",
 ):
     """Chat handler for AI Mentor mode."""
@@ -258,7 +288,7 @@ def _mentor_respond(
 
     if _orchestrator is None or not _orchestrator.llm or not _orchestrator.llm.is_loaded:
         history.append({"role": "assistant", "content": "⚠️ LLM not loaded. Check models/ folder."})
-        return history, history, ""
+        return history, history, session_id, ""
 
     from edgetutor.core.mentor import build_mentor_prompt, get_mentor_topic_prompt
 
@@ -279,7 +309,7 @@ def _mentor_respond(
             display_text = message if message.strip() else f"📖 [Topic: {mentor_topic}]"
             history.append({"role": "user", "content": display_text})
             history.append({"role": "assistant", "content": get_redirect_message()})
-            return history, history, ""
+            return history, history, session_id, ""
 
     system_prompt = build_mentor_prompt(age=age_mode)
     conv_history = _build_conv_history(history)
@@ -294,30 +324,35 @@ def _mentor_respond(
     )
 
     history.append({"role": "assistant", "content": response_text})
-    return history, history, ""
+
+    # Auto-save conversation
+    _auto_save(session_id, history)
+
+    return history, history, session_id, ""
 
 
 # ── Worksheet scanner ─────────────────────────────────────────────────────────
-def _scan_worksheet(image, history, age_mode, subject_mode, parent_mode):
+def _scan_worksheet(image, history, session_id, age_mode, subject_mode, parent_mode):
     if image is None:
         history = history or []
         history.append({"role": "assistant", "content": "📷 Upload or capture an image first!"})
-        return history, history, None
+        return history, history, session_id, None
 
     return _chat_respond(
         message="Please explain this worksheet step by step.",
         image=image,
         history=history,
+        session_id=session_id,
         age_mode=age_mode,
         subject_mode=subject_mode,
         parent_mode=parent_mode,
-    )[:3]
+    )
 
 
-def _explain_step_by_step(history, age_mode, subject_mode, parent_mode):
+def _explain_step_by_step(history, session_id, age_mode, subject_mode, parent_mode):
     if not history:
         history = [{"role": "assistant", "content": "Ask me a question first!"}]
-        return history, history
+        return history, history, session_id
 
     last_user = ""
     for msg in reversed(history):
@@ -327,27 +362,29 @@ def _explain_step_by_step(history, age_mode, subject_mode, parent_mode):
 
     if not last_user:
         history.append({"role": "assistant", "content": "Ask me a question first!"})
-        return history, history
+        return history, history, session_id
 
     result = _chat_respond(
         message=f"Please explain this step by step in detail: {last_user}",
         history=history,
+        session_id=session_id,
         age_mode=age_mode,
         subject_mode=subject_mode,
         parent_mode=parent_mode,
     )
-    return result[0], result[1]
+    return result[0], result[1], result[2]
 
 
 # ── Build the full UI ─────────────────────────────────────────────────────────
 def build_ui() -> gr.Blocks:
     """Build the Gradio dark-themed interface with Tutor + Mentor tabs."""
-    global _orchestrator, _module_status
+    global _orchestrator, _module_status, _conversation_store
 
     from edgetutor.app.orchestrator import get_orchestrator
 
     _orchestrator = get_orchestrator()
     _module_status = _orchestrator.load_modules()
+    _conversation_store = get_conversation_store()
 
     # Dark theme
     theme = gr.themes.Base(
@@ -389,6 +426,8 @@ def build_ui() -> gr.Blocks:
         # ── State ─────────────────────────────────────────────────────────
         tutor_state = gr.State([])
         mentor_state = gr.State([])
+        tutor_session_id = gr.State(str(uuid.uuid4())[:8])
+        mentor_session_id = gr.State(str(uuid.uuid4())[:8])
 
         # ── Header ────────────────────────────────────────────────────────
         gr.HTML("""
@@ -478,12 +517,19 @@ def build_ui() -> gr.Blocks:
                     audio_input,
                     image_input,
                     tutor_state,
+                    tutor_session_id,
                     age_slider,
                     subject_dropdown,
                     parent_toggle,
                     quiz_toggle,
                 ]
-                tutor_outputs = [tutor_chatbot, tutor_state, audio_output, tutor_input]
+                tutor_outputs = [
+                    tutor_chatbot,
+                    tutor_state,
+                    tutor_session_id,
+                    audio_output,
+                    tutor_input,
+                ]
 
                 tutor_send.click(
                     fn=_chat_respond_stream,
@@ -497,13 +543,26 @@ def build_ui() -> gr.Blocks:
                 )
                 scan_btn.click(
                     fn=_scan_worksheet,
-                    inputs=[image_input, tutor_state, age_slider, subject_dropdown, parent_toggle],
-                    outputs=[tutor_chatbot, tutor_state, audio_output],
+                    inputs=[
+                        image_input,
+                        tutor_state,
+                        tutor_session_id,
+                        age_slider,
+                        subject_dropdown,
+                        parent_toggle,
+                    ],
+                    outputs=[tutor_chatbot, tutor_state, tutor_session_id, audio_output],
                 )
                 explain_btn.click(
                     fn=_explain_step_by_step,
-                    inputs=[tutor_state, age_slider, subject_dropdown, parent_toggle],
-                    outputs=[tutor_chatbot, tutor_state],
+                    inputs=[
+                        tutor_state,
+                        tutor_session_id,
+                        age_slider,
+                        subject_dropdown,
+                        parent_toggle,
+                    ],
+                    outputs=[tutor_chatbot, tutor_state, tutor_session_id],
                 )
 
             # ══════════════ TAB 2: AI MENTOR ══════════════════════════════
@@ -566,29 +625,55 @@ def build_ui() -> gr.Blocks:
                         gr.HTML(_get_system_info_html())
 
                 # Mentor event handlers
+                mentor_outputs = [
+                    mentor_chatbot,
+                    mentor_state,
+                    mentor_session_id,
+                    mentor_input,
+                ]
                 mentor_send.click(
                     fn=_mentor_respond,
-                    inputs=[mentor_input, gr.State("none"), mentor_state, mentor_age],
-                    outputs=[mentor_chatbot, mentor_state, mentor_input],
+                    inputs=[
+                        mentor_input,
+                        gr.State("none"),
+                        mentor_state,
+                        mentor_session_id,
+                        mentor_age,
+                    ],
+                    outputs=mentor_outputs,
                 )
                 mentor_input.submit(
                     fn=_mentor_respond,
-                    inputs=[mentor_input, gr.State("none"), mentor_state, mentor_age],
-                    outputs=[mentor_chatbot, mentor_state, mentor_input],
+                    inputs=[
+                        mentor_input,
+                        gr.State("none"),
+                        mentor_state,
+                        mentor_session_id,
+                        mentor_age,
+                    ],
+                    outputs=mentor_outputs,
                 )
 
                 # Topic button handlers
                 for topic_key, btn in topic_buttons.items():
                     btn.click(
                         fn=_mentor_respond,
-                        inputs=[gr.State(""), gr.State(topic_key), mentor_state, mentor_age],
-                        outputs=[mentor_chatbot, mentor_state, mentor_input],
+                        inputs=[
+                            gr.State(""),
+                            gr.State(topic_key),
+                            mentor_state,
+                            mentor_session_id,
+                            mentor_age,
+                        ],
+                        outputs=mentor_outputs,
                     )
 
             # ══════════════ TAB 3: ABOUT ══════════════════════════════════
             with gr.TabItem("ℹ️ About", id="about"):
-                gr.Markdown("""
-### EdgeTutor AI v0.1.0
+                from edgetutor import __version__
+
+                gr.Markdown(f"""
+### EdgeTutor AI v{__version__}
 
 **An offline-first AI Tutor + AI Mentor for NVIDIA Jetson.**
 

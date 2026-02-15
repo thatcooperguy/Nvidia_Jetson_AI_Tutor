@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "edgetutor-ai"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Offline AI Tutor for NVIDIA Jetson — voice, vision, and chat"
 readme = "README.md"
 license = {text = "MIT"}
@@ -66,6 +66,9 @@ Issues = "https://github.com/thatcooperguy/Nvidia_Jetson_AI_Tutor/issues"
 
 [tool.setuptools.packages.find]
 include = ["edgetutor*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "edgetutor.__version__"}
 
 [tool.ruff]
 target-version = "py310"

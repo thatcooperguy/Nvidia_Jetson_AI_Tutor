@@ -7,6 +7,7 @@ Usage:
 
 import sys
 
+from edgetutor import __version__
 from edgetutor.core.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -14,7 +15,7 @@ logger = get_logger(__name__)
 
 def main():
     """Launch EdgeTutor AI."""
-    logger.info("Starting EdgeTutor AI v0.1.0")
+    logger.info("Starting EdgeTutor AI v%s", __version__)
     logger.info("=" * 60)
     logger.info("  EdgeTutor AI — Offline AI Tutor for NVIDIA Jetson")
     logger.info("  Access the UI at: http://localhost:7860")
