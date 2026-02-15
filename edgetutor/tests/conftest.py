@@ -4,17 +4,26 @@ Pytest configuration and shared fixtures for EdgeTutor tests.
 These fixtures ensure tests can run in CI without hardware dependencies.
 """
 
-import os
 import pytest
+
+from edgetutor.core.settings import reset_settings
 
 
 @pytest.fixture(autouse=True)
 def disable_hardware_for_tests(monkeypatch):
     """Disable hardware-dependent features during testing."""
+    # Reset the cached settings singleton so each test gets fresh settings
+    reset_settings()
+
     monkeypatch.setenv("STT_ENABLED", "false")
     monkeypatch.setenv("TTS_ENABLED", "false")
     monkeypatch.setenv("CAMERA_ENABLED", "false")
     monkeypatch.setenv("LLM_MODEL_PATH", "models/nonexistent.gguf")
+
+    yield
+
+    # Clean up after each test
+    reset_settings()
 
 
 @pytest.fixture

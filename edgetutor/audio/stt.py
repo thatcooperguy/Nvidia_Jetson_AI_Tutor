@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import time
 from pathlib import Path
-from typing import Optional
 
 from edgetutor.core.logging_config import get_logger
 from edgetutor.core.settings import get_settings
@@ -84,7 +83,7 @@ class STTEngine:
     def transcribe(
         self,
         audio_path: str | Path,
-        language: Optional[str] = None,
+        language: str | None = None,
     ) -> dict:
         """
         Transcribe an audio file.
@@ -154,7 +153,7 @@ class STTEngine:
         self,
         audio_array,
         sample_rate: int = 16000,
-        language: Optional[str] = None,
+        language: str | None = None,
     ) -> dict:
         """
         Transcribe from a numpy array (e.g., from Gradio audio input).
@@ -168,7 +167,13 @@ class STTEngine:
             Same dict as transcribe().
         """
         if not self._ready or self.model is None:
-            return {"text": "", "language": "", "duration_s": 0.0, "elapsed_s": 0.0, "error": "STT not loaded"}
+            return {
+                "text": "",
+                "language": "",
+                "duration_s": 0.0,
+                "elapsed_s": 0.0,
+                "error": "STT not loaded",
+            }
 
         import numpy as np
 
@@ -210,7 +215,13 @@ class STTEngine:
 
         except Exception as e:
             logger.error("STT numpy transcription failed: %s", e)
-            return {"text": "", "language": "", "duration_s": 0.0, "elapsed_s": 0.0, "error": str(e)}
+            return {
+                "text": "",
+                "language": "",
+                "duration_s": 0.0,
+                "elapsed_s": 0.0,
+                "error": str(e),
+            }
 
 
 def get_stt() -> STTEngine:

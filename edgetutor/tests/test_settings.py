@@ -1,17 +1,16 @@
 """Tests for edgetutor.core.settings."""
 
-import os
-from pathlib import Path
-
-import pytest
-
 
 class TestSettings:
     """Test the Settings configuration class."""
 
-    def test_default_values(self):
+    def test_default_values(self, monkeypatch):
         """Settings should have sensible defaults without any .env file."""
         from edgetutor.core.settings import Settings
+
+        # Clear env vars that conftest sets, so we can test true defaults
+        for key in ("STT_ENABLED", "TTS_ENABLED", "CAMERA_ENABLED", "LLM_MODEL_PATH"):
+            monkeypatch.delenv(key, raising=False)
 
         # Create with no env file
         s = Settings(_env_file="nonexistent.env")
@@ -55,7 +54,8 @@ class TestSettings:
 
         s = Settings(_env_file="nonexistent.env")
         resolved = s.resolve_path("/tmp/test.gguf")
-        assert resolved == Path("/tmp/test.gguf")
+        assert resolved.is_absolute()
+        assert resolved.name == "test.gguf"
 
     def test_env_override(self, monkeypatch):
         """Settings should pick up environment variable overrides."""

@@ -10,7 +10,6 @@ from __future__ import annotations
 import json
 import time
 from pathlib import Path
-from typing import Optional
 
 from edgetutor.core.logging_config import get_logger
 from edgetutor.core.settings import get_settings
@@ -70,7 +69,7 @@ class RAGStore:
             import faiss
 
             self.index = faiss.read_index(str(index_file))
-            with open(meta_file, "r", encoding="utf-8") as f:
+            with open(meta_file, encoding="utf-8") as f:
                 self.chunks = json.load(f)
 
             logger.info(
@@ -85,7 +84,7 @@ class RAGStore:
             logger.error("Failed to load FAISS index: %s", e)
             return False
 
-    def ingest(self, content_dir: Optional[Path] = None) -> int:
+    def ingest(self, content_dir: Path | None = None) -> int:
         """
         Ingest documents from content directory into FAISS index.
 
@@ -148,8 +147,6 @@ class RAGStore:
         logger.info("Chunked %d documents into %d chunks", len(documents), len(self.chunks))
 
         # Embed
-        import numpy as np
-
         texts = [c["text"] for c in self.chunks]
         t0 = time.time()
         embeddings = self.embedder.encode(texts, show_progress_bar=True, convert_to_numpy=True)
@@ -177,7 +174,7 @@ class RAGStore:
         logger.info("FAISS index saved to %s (%d vectors)", index_dir, self.index.ntotal)
         return len(self.chunks)
 
-    def query(self, text: str, top_k: Optional[int] = None) -> list[dict]:
+    def query(self, text: str, top_k: int | None = None) -> list[dict]:
         """
         Retrieve the most relevant chunks for a query.
 
@@ -189,7 +186,6 @@ class RAGStore:
         cfg = get_settings()
         k = top_k or cfg.rag_top_k
 
-        import numpy as np
         import faiss
 
         query_vec = self.embedder.encode([text], convert_to_numpy=True)
@@ -198,15 +194,17 @@ class RAGStore:
         scores, indices = self.index.search(query_vec, min(k, self.index.ntotal))
 
         results = []
-        for score, idx in zip(scores[0], indices[0]):
+        for score, idx in zip(scores[0], indices[0], strict=False):
             if idx < 0 or idx >= len(self.chunks):
                 continue
             chunk = self.chunks[idx]
-            results.append({
-                "text": chunk["text"],
-                "source": chunk["source"],
-                "score": float(score),
-            })
+            results.append(
+                {
+                    "text": chunk["text"],
+                    "source": chunk["source"],
+                    "score": float(score),
+                }
+            )
 
         return results
 

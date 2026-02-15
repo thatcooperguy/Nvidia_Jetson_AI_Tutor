@@ -1,7 +1,5 @@
 """Tests for edgetutor.core.prompts — prompt template builders."""
 
-import pytest
-
 from edgetutor.core.prompts import (
     AGE_TONES,
     SUBJECT_INSTRUCTIONS,

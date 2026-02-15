@@ -10,7 +10,6 @@ from __future__ import annotations
 import re
 import time
 from pathlib import Path
-from typing import Optional
 
 from edgetutor.core.logging_config import get_logger
 from edgetutor.core.settings import get_settings
@@ -47,7 +46,7 @@ class OCREngine:
     def extract_text(
         self,
         image_input,
-        language: Optional[str] = None,
+        language: str | None = None,
     ) -> dict:
         """
         Extract text from an image.
@@ -74,8 +73,8 @@ class OCREngine:
         lang = language or cfg.ocr_language
 
         try:
-            from PIL import Image
             import pytesseract
+            from PIL import Image
 
             # Normalize input to PIL Image
             if isinstance(image_input, (str, Path)):
@@ -93,9 +92,7 @@ class OCREngine:
             t0 = time.time()
 
             # Get detailed data for confidence
-            data = pytesseract.image_to_data(
-                image, lang=lang, output_type=pytesseract.Output.DICT
-            )
+            data = pytesseract.image_to_data(image, lang=lang, output_type=pytesseract.Output.DICT)
 
             # Also get plain text (often cleaner)
             text = pytesseract.image_to_string(image, lang=lang).strip()

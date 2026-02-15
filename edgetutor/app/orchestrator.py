@@ -8,11 +8,17 @@ routes through the appropriate modules, and produces a tutor response.
 from __future__ import annotations
 
 import time
+from collections.abc import Generator
 from dataclasses import dataclass, field
-from typing import Generator, Optional
+from typing import TYPE_CHECKING
 
 from edgetutor.core.logging_config import get_logger
 from edgetutor.core.settings import get_settings
+
+if TYPE_CHECKING:
+    import numpy as np
+    from numpy.typing import NDArray
+    from PIL import Image
 
 logger = get_logger(__name__)
 
@@ -22,11 +28,11 @@ class TutorRequest:
     """Input to the orchestrator."""
 
     user_text: str = ""
-    audio_path: Optional[str] = None
-    audio_array: Optional[object] = None  # numpy array from Gradio
+    audio_path: str | None = None
+    audio_array: NDArray[np.float32] | None = None
     audio_sample_rate: int = 16000
-    image: Optional[object] = None  # PIL Image or numpy array
-    settings_override: Optional[dict] = None
+    image: Image.Image | NDArray | None = None
+    settings_override: dict | None = None
 
 
 @dataclass
@@ -34,7 +40,7 @@ class TutorResponse:
     """Output from the orchestrator."""
 
     text: str = ""
-    audio: Optional[tuple] = None  # (sample_rate, numpy_array) for Gradio
+    audio: tuple | None = None  # (sample_rate, numpy_array) for Gradio
     ocr_text: str = ""
     has_math: bool = False
     math_expressions: list[str] = field(default_factory=list)
@@ -56,6 +62,11 @@ class TutorOrchestrator:
         self._tts = None
         self._ocr = None
         self._rag = None
+
+    @property
+    def llm(self):
+        """Public access to the LLM backend (for mentor mode, etc.)."""
+        return self._llm
 
     def load_modules(self) -> dict:
         """
@@ -133,7 +144,7 @@ class TutorOrchestrator:
     def process(
         self,
         request: TutorRequest,
-        conversation_history: Optional[list[dict]] = None,
+        conversation_history: list[dict] | None = None,
     ) -> TutorResponse:
         """
         Process a tutor request end-to-end (non-streaming).
@@ -146,13 +157,22 @@ class TutorOrchestrator:
         if request.settings_override:
             self._apply_settings(request.settings_override)
 
+        # ─── Early safety check on raw text input ─────────────────────────
+        if cfg.safety_enabled and request.user_text:
+            from edgetutor.core.safety import check_input_safety, get_redirect_message
+
+            is_safe, category = check_input_safety(request.user_text)
+            if not is_safe:
+                logger.info("Orchestrator blocked input: category=%s", category)
+                response.text = get_redirect_message()
+                response.latency["total"] = time.time() - total_t0
+                return response
+
         # ─── Step 1: Speech-to-text (if audio provided) ──────────────────
         user_text = request.user_text
         if request.audio_array is not None and self._stt and self._stt.is_ready:
             t0 = time.time()
-            result = self._stt.transcribe_numpy(
-                request.audio_array, request.audio_sample_rate
-            )
+            result = self._stt.transcribe_numpy(request.audio_array, request.audio_sample_rate)
             response.latency["stt"] = time.time() - t0
             if result.get("text"):
                 user_text = result["text"]
@@ -196,8 +216,8 @@ class TutorOrchestrator:
         # ─── Step 4: Build the prompt and call LLM ───────────────────────
         if self._llm and self._llm.is_loaded:
             from edgetutor.core.prompts import (
-                build_rag_context,
                 build_quiz_prompt,
+                build_rag_context,
                 build_vision_prompt,
             )
 
@@ -259,14 +279,16 @@ class TutorOrchestrator:
         )
 
         response.latency["total"] = time.time() - total_t0
-        logger.info("Orchestrator total: %.1fs — latency=%s", response.latency["total"], response.latency)
+        logger.info(
+            "Orchestrator total: %.1fs — latency=%s", response.latency["total"], response.latency
+        )
 
         return response
 
     def process_stream(
         self,
         request: TutorRequest,
-        conversation_history: Optional[list[dict]] = None,
+        conversation_history: list[dict] | None = None,
     ) -> Generator[str, None, None]:
         """
         Process a tutor request with streaming LLM output.
@@ -278,6 +300,15 @@ class TutorOrchestrator:
 
         if request.settings_override:
             self._apply_settings(request.settings_override)
+
+        # ─── Early safety check ──────────────────────────────────────────
+        if cfg.safety_enabled and request.user_text:
+            from edgetutor.core.safety import check_input_safety, get_redirect_message
+
+            is_safe, _category = check_input_safety(request.user_text)
+            if not is_safe:
+                yield get_redirect_message()
+                return
 
         # STT
         user_text = request.user_text
@@ -312,7 +343,7 @@ class TutorOrchestrator:
             yield "[EdgeTutor] Language model not loaded. Check models/ folder."
             return
 
-        from edgetutor.core.prompts import build_rag_context, build_quiz_prompt, build_vision_prompt
+        from edgetutor.core.prompts import build_quiz_prompt, build_rag_context, build_vision_prompt
 
         if ocr_text:
             final_message = build_vision_prompt(ocr_text=ocr_text, is_math=has_math)
@@ -334,35 +365,45 @@ class TutorOrchestrator:
             yield "Hi! I'm EdgeTutor. Ask me anything or scan a worksheet!"
             return
 
-        # Stream LLM
-        yield from self._llm.generate_stream(
+        # Stream LLM — accumulate and check output safety afterward
+        accumulated = ""
+        for token in self._llm.generate_stream(
             user_message=final_message,
             conversation_history=conversation_history,
-        )
+        ):
+            accumulated += token
+            yield token
+
+        # Post-stream output safety check
+        if cfg.safety_enabled and accumulated:
+            from edgetutor.core.safety import check_output_safety
+
+            scrubbed = check_output_safety(accumulated)
+            if scrubbed != accumulated:
+                # Yield a replacement marker — the UI should use the final
+                # accumulated text, so we signal that a replacement happened.
+                yield "\n\n[Response replaced by safety filter]"
 
     def _apply_settings(self, overrides: dict) -> None:
         """Apply runtime setting overrides."""
-        cfg = get_settings()
+        import contextlib
+
         from edgetutor.core.settings import AgeMode, SubjectMode
 
+        cfg = get_settings()
+
         if "age_mode" in overrides:
-            try:
+            with contextlib.suppress(ValueError):
                 cfg.age_mode = AgeMode(str(overrides["age_mode"]))
-            except ValueError:
-                pass
         if "subject_mode" in overrides:
-            try:
+            with contextlib.suppress(ValueError):
                 cfg.subject_mode = SubjectMode(overrides["subject_mode"])
-            except ValueError:
-                pass
         if "parent_mode" in overrides:
             cfg.parent_mode = bool(overrides["parent_mode"])
         if "quiz_mode" in overrides:
             cfg.quiz_mode = bool(overrides["quiz_mode"])
 
-    def _generate_suggestions(
-        self, user_text: str, ocr_text: str, subject: str
-    ) -> list[str]:
+    def _generate_suggestions(self, user_text: str, ocr_text: str, subject: str) -> list[str]:
         """Generate 'next steps' suggestions based on context."""
         suggestions = []
 
